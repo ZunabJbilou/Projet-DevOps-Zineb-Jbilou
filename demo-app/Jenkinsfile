@@ -1,50 +1,53 @@
 pipeline {
-    agent any  // Utilise n'importe quel agent disponible
-
-    environment {
-        MAVEN_OPTS = '-Xmx1024m'
-        JAVA_HOME = 'C:\\Program Files\\Java\\jdk-17'  // Chemin vers ton Java 17
-        PATH = "${env.JAVA_HOME}\\bin;${env.PATH}"
+    agent {
+        docker { image 'maven:3.9-eclipse-temurin-17' } // Image Maven 3.9 + JDK 17 (Eclipse Temurin)
     }
 
     stages {
         stage('Checkout') {
             steps {
                 git branch: 'main',
-                    url: 'https://github.com/ZunabJbilou/TPJavaPipeLineZinebJbilou.git'
+                    url: 'https://github.com/ZunabJbilou/Projet-DevOps-ZinebJbilou.git'
             }
         }
 
         stage('Build') {
             steps {
-                echo "Compilation du projet avec Maven et Java 17..."
-                bat 'mvn clean package -B'
+                dir('demo-app') {
+                    sh 'mvn clean package -B'
+                }
             }
         }
 
         stage('Test') {
             steps {
-                echo "Exécution des tests unitaires..."
-                bat 'mvn test -B'
+                dir('demo-app') {
+                    sh 'mvn test -B'
+                }
             }
         }
 
         stage('Archive') {
             when {
+                // Archive uniquement si les tests ont réussi
                 expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
             }
             steps {
-                echo "Archivage des fichiers JAR..."
-                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+                dir('demo-app') {
+                    archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+                }
             }
         }
 
         stage('Deploy') {
             when {
+                // Déploiement uniquement si les tests ont réussi
                 expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
             }
             steps {
-                echo 'Déploiement optionnel (à personnaliser si nécessaire)'
+                echo 'Déploiement optionnel'
+                // Ici vous pouvez ajouter votre logique de déploiement
+                // Par exemple : docker build, docker push, déploiement sur serveur, etc.
             }
         }
     }
@@ -52,9 +55,43 @@ pipeline {
     post {
         success {
             echo "Pipeline terminé avec succès !"
+            script {
+                // Notification Slack en cas de succès
+                try {
+                    slackSend(
+                        channel: '#devops',
+                        color: 'good',
+                        message: """
+                            ✅ *Pipeline réussi - ${env.JOB_NAME}*
+                            Build #${env.BUILD_NUMBER} terminé avec succès
+                            Branche: ${env.BRANCH_NAME ?: 'main'}
+                            Lien: ${env.BUILD_URL}
+                        """
+                    )
+                } catch (Exception e) {
+                    echo "Erreur lors de l'envoi de la notification Slack: ${e.getMessage()}"
+                }
+            }
         }
         failure {
             echo "Pipeline échoué !"
+            script {
+                // Notification Slack en cas d'échec
+                try {
+                    slackSend(
+                        channel: '#devops',
+                        color: 'danger',
+                        message: """
+                            ❌ *Pipeline échoué - ${env.JOB_NAME}*
+                            Build #${env.BUILD_NUMBER} a échoué
+                            Branche: ${env.BRANCH_NAME ?: 'main'}
+                            Lien: ${env.BUILD_URL}
+                        """
+                    )
+                } catch (Exception e) {
+                    echo "Erreur lors de l'envoi de la notification Slack: ${e.getMessage()}"
+                }
+            }
         }
         always {
             echo "Pipeline terminé"
