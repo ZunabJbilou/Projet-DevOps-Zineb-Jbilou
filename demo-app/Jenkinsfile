@@ -1,5 +1,9 @@
 pipeline {
-    agent any  // Utilise l'agent Windows ou n'importe quel agent disponible
+    agent any  // Utilise n'importe quel agent disponible
+
+    environment {
+        MAVEN_OPTS = '-Xmx1024m'
+    }
 
     stages {
         stage('Checkout') {
@@ -11,13 +15,15 @@ pipeline {
 
         stage('Build') {
             steps {
-                bat 'mvn clean package -B'
+                echo "Compilation du projet avec Maven..."
+                sh 'mvn clean package -B'
             }
         }
 
         stage('Test') {
             steps {
-                bat 'mvn test -B'
+                echo "Exécution des tests unitaires..."
+                sh 'mvn test -B'
             }
         }
 
@@ -26,6 +32,7 @@ pipeline {
                 expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
             }
             steps {
+                echo "Archivage des fichiers JAR..."
                 archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
             }
         }
@@ -35,8 +42,8 @@ pipeline {
                 expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
             }
             steps {
-                echo 'Déploiement optionnel'
-                // Ici tu peux ajouter un script de déploiement Windows si nécessaire
+                echo 'Déploiement optionnel (à personnaliser si nécessaire)'
+                // Ici tu peux ajouter un script de déploiement Linux si besoin
             }
         }
     }
