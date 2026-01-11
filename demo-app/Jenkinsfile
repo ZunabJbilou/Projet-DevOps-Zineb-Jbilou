@@ -1,6 +1,10 @@
 pipeline {
     agent any  // Utilise n'importe quel agent disponible
 
+    tools {
+        maven 'Maven 3.9.12' // Nom que tu as configuré dans Jenkins
+    }
+
     environment {
         MAVEN_OPTS = '-Xmx1024m'
     }
@@ -16,14 +20,14 @@ pipeline {
         stage('Build') {
             steps {
                 echo "Compilation du projet avec Maven..."
-                sh 'mvn clean package -B'
+                bat 'mvn clean package -B'
             }
         }
 
         stage('Test') {
             steps {
                 echo "Exécution des tests unitaires..."
-                sh 'mvn test -B'
+                bat 'mvn test -B'
             }
         }
 
@@ -43,7 +47,7 @@ pipeline {
             }
             steps {
                 echo 'Déploiement optionnel (à personnaliser si nécessaire)'
-                // Ici tu peux ajouter un script de déploiement Linux si besoin
+                // Tu peux ajouter un script de déploiement Windows ici si besoin
             }
         }
     }
