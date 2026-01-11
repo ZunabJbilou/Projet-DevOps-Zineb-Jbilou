@@ -1,0 +1,32 @@
+name: Java CI
+
+on:
+  push:
+    branches: [ dev ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Vérifie le code source
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 2. Configure Java 17 (distribution obligatoire)
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'   # obligatoire
+          java-version: '17'
+          cache: 'maven'            # optionnel mais recommandé pour accélérer le build
+
+      # 3. Build le projet avec Maven
+      - name: Build with Maven
+        run: mvn clean package -B
+
+      # 4. Exécuter les tests (optionnel si tu as des tests)
+      - name: Run tests
+        run: mvn test -B

@@ -1,0 +1,100 @@
+pipeline {
+    agent {
+        docker { image 'maven:3.9-eclipse-temurin-17' } // Image Maven 3.9 + JDK 17 (Eclipse Temurin)
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/AmalChegdali/Projet-DevOps-AmalChegdali.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                dir('demo-app') {
+                    sh 'mvn clean package -B'
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                dir('demo-app') {
+                    sh 'mvn test -B'
+                }
+            }
+        }
+
+        stage('Archive') {
+            when {
+                // Archive uniquement si les tests ont réussi
+                expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
+            }
+            steps {
+                dir('demo-app') {
+                    archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+                }
+            }
+        }
+
+        stage('Deploy') {
+            when {
+                // Déploiement uniquement si les tests ont réussi
+                expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
+            }
+            steps {
+                echo 'Déploiement optionnel'
+                // Ici vous pouvez ajouter votre logique de déploiement
+                // Par exemple : docker build, docker push, déploiement sur serveur, etc.
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Pipeline terminé avec succès !"
+            script {
+                // Notification Slack en cas de succès
+                try {
+                    slackSend(
+                        channel: '#devops',
+                        color: 'good',
+                        message: """
+                            ✅ *Pipeline réussi - ${env.JOB_NAME}*
+                            Build #${env.BUILD_NUMBER} terminé avec succès
+                            Branche: ${env.BRANCH_NAME ?: 'main'}
+                            Lien: ${env.BUILD_URL}
+                        """
+                    )
+                } catch (Exception e) {
+                    echo "Erreur lors de l'envoi de la notification Slack: ${e.getMessage()}"
+                }
+            }
+        }
+        failure {
+            echo "Pipeline échoué !"
+            script {
+                // Notification Slack en cas d'échec
+                try {
+                    slackSend(
+                        channel: '#devops',
+                        color: 'danger',
+                        message: """
+                            ❌ *Pipeline échoué - ${env.JOB_NAME}*
+                            Build #${env.BUILD_NUMBER} a échoué
+                            Branche: ${env.BRANCH_NAME ?: 'main'}
+                            Lien: ${env.BUILD_URL}
+                        """
+                    )
+                } catch (Exception e) {
+                    echo "Erreur lors de l'envoi de la notification Slack: ${e.getMessage()}"
+                }
+            }
+        }
+        always {
+            echo "Pipeline terminé"
+        }
+    }
+}
