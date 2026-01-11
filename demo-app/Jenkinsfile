@@ -1,53 +1,42 @@
 pipeline {
-    agent {
-        docker { image 'maven:3.9-eclipse-temurin-17' } // Image Maven 3.9 + JDK 17 (Eclipse Temurin)
-    }
+    agent any  // Utilise l'agent Windows ou n'importe quel agent disponible
 
     stages {
         stage('Checkout') {
             steps {
                 git branch: 'main',
-                    url: 'https://github.com/AmalChegdali/Projet-DevOps-AmalChegdali.git'
+                    url: 'https://github.com/ZunabJbilou/TPJavaPipeLineZinebJbilou.git'
             }
         }
 
         stage('Build') {
             steps {
-                dir('demo-app') {
-                    sh 'mvn clean package -B'
-                }
+                bat 'mvn clean package -B'
             }
         }
 
         stage('Test') {
             steps {
-                dir('demo-app') {
-                    sh 'mvn test -B'
-                }
+                bat 'mvn test -B'
             }
         }
 
         stage('Archive') {
             when {
-                // Archive uniquement si les tests ont réussi
                 expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
             }
             steps {
-                dir('demo-app') {
-                    archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
-                }
+                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
             }
         }
 
         stage('Deploy') {
             when {
-                // Déploiement uniquement si les tests ont réussi
                 expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
             }
             steps {
                 echo 'Déploiement optionnel'
-                // Ici vous pouvez ajouter votre logique de déploiement
-                // Par exemple : docker build, docker push, déploiement sur serveur, etc.
+                // Ici tu peux ajouter un script de déploiement Windows si nécessaire
             }
         }
     }
@@ -56,7 +45,6 @@ pipeline {
         success {
             echo "Pipeline terminé avec succès !"
             script {
-                // Notification Slack en cas de succès
                 try {
                     slackSend(
                         channel: '#devops',
@@ -69,14 +57,13 @@ pipeline {
                         """
                     )
                 } catch (Exception e) {
-                    echo "Erreur lors de l'envoi de la notification Slack: ${e.getMessage()}"
+                    echo "Erreur lors de l'envoi de Slack: ${e.getMessage()}"
                 }
             }
         }
         failure {
             echo "Pipeline échoué !"
             script {
-                // Notification Slack en cas d'échec
                 try {
                     slackSend(
                         channel: '#devops',
@@ -89,7 +76,7 @@ pipeline {
                         """
                     )
                 } catch (Exception e) {
-                    echo "Erreur lors de l'envoi de la notification Slack: ${e.getMessage()}"
+                    echo "Erreur lors de l'envoi de Slack: ${e.getMessage()}"
                 }
             }
         }
